@@ -1,11 +1,14 @@
-﻿namespace CSharpHelper
+﻿using System.Diagnostics;
+using System.Threading.Tasks;
+
+namespace CSharpHelper
 {
 
 	/// <summary>
 	/// classe de cellules basique 
 	/// </summary>
 	/// <typeparam name="T">Type de cellules, héritant de la classe <see cref="Cell{T}"/></typeparam>
-	public class Cell<T> : Grid<T>.ICell
+	public abstract class Cell<T> : Grid<T>.ICell
 		where T : Cell<T>
 	{
 		private readonly int _x, _y;
@@ -23,27 +26,46 @@
 			_x = x;
 			_y = y;
 
-			if (x != 0)
-			{
-				_left = list[x - 1, y];
-				(Left as Cell<T>)._right = this as T;
-				if (torus && X == list.Width - 1)
-				{
-					_right = list[0, y];
-					(Right as Cell<T>)._left = this as T;
-				}
-			}
+			//_up = list[x, (y > 0 ? y : list.Height) - 1];
+			//_down = list[x, (y < list.Height - 1 ? y + 1 : 0)];
+			//_left = list[(x > 0 ? x : list.Width) - 1, y];
+			//_right = list[(x < list.Width - 1 ? x + 1 : 0), y];
 
-			if (y != 0)
-			{
-				_up = list[x, y - 1];
-				(Up as Cell<T>)._down = this as T;
-				if (torus && Y == list.Height - 1)
-				{
-					_down = list[x, 0];
-					(Down as Cell<T>)._up = this as T;
-				}
-			}
+			_up = list[x, (y > 0 ? y : list.Height) - 1];
+			_down = list[x, (y == list.Height - 1 ? 0 : y + 1)];
+			_left = list[(x > 0 ? x : list.Width) - 1, y];
+			_right = list[(x == list.Width - 1 ? 0 : x + 1), y];
+
+			if (Up != null)
+				Up._down = this as T;
+			if (Down != null)
+				Down._up = this as T;
+			if (Left != null)
+				Left._right = this as T;
+			if (Right != null)
+				Right._left = this as T;
+
+			//if (x != 0)
+			//{
+			//	_left = list[x - 1, y];
+			//	(Left as Cell<T>)._right = this as T;
+			//	if (torus && X == list.Width - 1)
+			//	{
+			//		_right = list[0, y];
+			//		(Right as Cell<T>)._left = this as T;
+			//	}
+			//}
+
+			//if (y != 0)
+			//{
+			//	_up = list[x, y - 1];
+			//	(Up as Cell<T>)._down = this as T;
+			//	if (torus && Y == list.Height - 1)
+			//	{
+			//		_down = list[x, 0];
+			//		(Down as Cell<T>)._up = this as T;
+			//	}
+			//}
 		}
 
 		public T Up
@@ -81,10 +103,10 @@
 	/// classe de cellules basique gérant les diagonales
 	/// </summary>
 	/// <typeparam name="T">Type de cellules, héritant de la classe <see cref="DiagonalCell{T}"/></typeparam>
-	public class DiagonalCell<T> : Cell<T>
+	public abstract class DiagonalCell<T> : Cell<T>
 		where T : DiagonalCell<T>
 	{
-		//private T _upLeft, _downLeft, _upRight, _downRight;
+		private T _upLeft, _downLeft, _upRight, _downRight;
 
 		/// <summary>
 		/// Constructeur de la  cellule
@@ -101,9 +123,13 @@
 		{
 			get
 			{
-				if (Up != null)
-					return Up.Left;
-				return Left != null ? Left.Up : null;
+				if (_upLeft == null)
+				{
+					if (Up != null)
+						_upLeft = Up.Left;
+					_upLeft = Left != null ? Left.Up : null;
+				}
+				return _upLeft;
 			}
 		}
 
@@ -111,9 +137,13 @@
 		{
 			get
 			{
-				if (Up != null)
-					return Up.Right;
-				return Right != null ? Right.Up : null;
+				if (_upRight == null)
+				{
+					if (Up != null)
+						_upRight = Up.Right;
+					_upRight = Right != null ? Right.Up : null;
+				}
+				return _upRight;
 			}
 		}
 
@@ -121,9 +151,13 @@
 		{
 			get
 			{
-				if (Down != null)
-					return Down.Left;
-				return Left != null ? Left.Down : null;
+				if (_downLeft == null)
+				{
+					if (Down != null)
+						_downLeft = Down.Left;
+					_downLeft = Left != null ? Left.Down : null;
+				}
+				return _downLeft;
 			}
 		}
 
@@ -131,9 +165,13 @@
 		{
 			get
 			{
-				if (Down != null)
-					return Down.Right;
-				return Right != null ? Right.Down : null;
+				if (_downRight == null)
+				{
+					if (Down != null)
+						_downRight = Down.Right;
+					_downRight = Right != null ? Right.Down : null;
+				}
+				return _downRight;
 			}
 		}
 	}
@@ -143,7 +181,7 @@
 	/// </summary>
 	/// <typeparam name="T">Type de cellules, implémentant l'interface <see cref="ICell"/></typeparam>
 	public class Grid<T>
-		where T : class, Grid<T>.ICell
+		where T : Grid<T>.ICell
 	{
 		#region Inner Class Cell
 
@@ -152,35 +190,17 @@
 		/// </summary>
 		public interface ICell
 		{
-			T Up
-			{
-				get;
-			}
+			T Up { get; }
 
-			T Down
-			{
-				get;
-			}
+			T Down { get; }
 
-			T Left
-			{
-				get;
-			}
+			T Left { get; }
 
-			T Right
-			{
-				get;
-			}
+			T Right { get; }
 
-			int X
-			{
-				get;
-			}
+			int X { get; }
 
-			int Y
-			{
-				get;
-			}
+			int Y { get; }
 		}
 
 		#endregion
@@ -194,16 +214,18 @@
 		/// </summary>
 		/// <param name="width">Nombre de cellules horizontalement</param>
 		/// <param name="height">Nombre de cellules verticalement</param>
-		/// <param name="createCell">constructeur de cellules <typeparamref name="T"/> en fonction de sa position x, y et de la <see cref="Grid"/> de <typeparamref name="T"/></param>
+		/// <param name="createCell">constructeur de cellules <typeparamref name="T"/> en fonction de sa position x, y et de la <see cref="Grid{T}"/></param>
 		protected Grid(int width, int height, System.Func<int, int, Grid<T>, T> createCell)
 		{
 			_width = width;
 			_height = height;
 			_cells = new T[_width,_height];
 
-			for (int i = 0; i < _width; ++i)
-				for (int j = 0; j < _height; ++j)
-					_cells[i, j] = createCell(i, j, this); // (T)Cell.New(i, j, this as Grid<Cell>);
+			Parallel.For(0, _width, x => Parallel.For(0, _height, y => _cells[x, y] = createCell(x, y, this)));
+
+			//for (int i = 0; i < _width; ++i)
+			//	for (int j = 0; j < _height; ++j)
+			//		_cells[i, j] = createCell(i, j, this);
 		}
 
 		public T this[int x, int y]
@@ -211,7 +233,7 @@
 			get
 			{
 				if (x < 0 || y < 0 || x >= _width || y >= _height)
-					return null;
+					return default(T);
 				return _cells[x, y];
 			}
 		}
