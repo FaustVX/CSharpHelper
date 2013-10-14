@@ -1,8 +1,28 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CSharpHelper
 {
+	/// <summary>
+	/// Mode de séléction des cellules voisines
+	/// </summary>
+	public enum ArroundSelectMode
+	{
+		/// <summary>
+		/// En croix (<see cref="Grid{T}.ICell.Up"/>, <see cref="Grid{T}.ICell.Down"/>, <see cref="Grid{T}.ICell.Left"/> et <see cref="Grid{T}.ICell.Right"/>)
+		/// </summary>
+		Cross,
+		/// <summary>
+		/// Tout le tour (<see cref="Cross"/> et <see cref="Diagonal"/>)
+		/// </summary>
+		Round,
+		/// <summary>
+		/// En diagonal (les 4 coins)
+		/// </summary>
+		Diagonal
+	}
 
 	/// <summary>
 	/// classe de cellules basique 
@@ -26,11 +46,6 @@ namespace CSharpHelper
 			_x = x;
 			_y = y;
 
-			//_up = list[x, (y > 0 ? y : list.Height) - 1];
-			//_down = list[x, (y < list.Height - 1 ? y + 1 : 0)];
-			//_left = list[(x > 0 ? x : list.Width) - 1, y];
-			//_right = list[(x < list.Width - 1 ? x + 1 : 0), y];
-
 			_up = list[x, (y > 0 ? y : list.Height) - 1];
 			_down = list[x, (y == list.Height - 1 ? 0 : y + 1)];
 			_left = list[(x > 0 ? x : list.Width) - 1, y];
@@ -44,28 +59,6 @@ namespace CSharpHelper
 				Left._right = this as T;
 			if (Right != null)
 				Right._left = this as T;
-
-			//if (x != 0)
-			//{
-			//	_left = list[x - 1, y];
-			//	(Left as Cell<T>)._right = this as T;
-			//	if (torus && X == list.Width - 1)
-			//	{
-			//		_right = list[0, y];
-			//		(Right as Cell<T>)._left = this as T;
-			//	}
-			//}
-
-			//if (y != 0)
-			//{
-			//	_up = list[x, y - 1];
-			//	(Up as Cell<T>)._down = this as T;
-			//	if (torus && Y == list.Height - 1)
-			//	{
-			//		_down = list[x, 0];
-			//		(Down as Cell<T>)._up = this as T;
-			//	}
-			//}
 		}
 
 		public T Up
@@ -97,6 +90,38 @@ namespace CSharpHelper
 		{
 			get { return _y; }
 		}
+
+		/// <summary>
+		/// liste toutes les cellules <typeparamref name="T"/> voisines en fonction du mode de sélection
+		/// </summary>
+		/// <param name="mode">mode de sélection des cellules voisines</param>
+		/// <returns>la liste des cellules voisines non nulles</returns>
+		public virtual IEnumerable<T> Arround(ArroundSelectMode mode)
+		{
+			if(mode != ArroundSelectMode.Diagonal)
+			{
+				if (Up != null)
+					yield return Up;
+				if (Down != null)
+					yield return Down;
+				if (Left != null)
+					yield return Left;
+				if (Right != null)
+					yield return Right;
+			}
+
+			if (mode == ArroundSelectMode.Cross)
+				yield break;
+
+			if (Up != null && Up.Left != null)
+				yield return Up.Left;
+			if (Up != null && Up.Right != null)
+				yield return Up.Right;
+			if (Down != null && Down.Left != null)
+				yield return Down.Left;
+			if (Down != null && Down.Right != null)
+				yield return Down.Right;
+		}
 	}
 
 	/// <summary>
@@ -127,7 +152,8 @@ namespace CSharpHelper
 				{
 					if (Up != null)
 						_upLeft = Up.Left;
-					_upLeft = Left != null ? Left.Up : null;
+					else
+						_upLeft = Left != null ? Left.Up : null;
 				}
 				return _upLeft;
 			}
@@ -141,7 +167,8 @@ namespace CSharpHelper
 				{
 					if (Up != null)
 						_upRight = Up.Right;
-					_upRight = Right != null ? Right.Up : null;
+					else
+						_upRight = (Right != null ? Right.Up : null);
 				}
 				return _upRight;
 			}
@@ -155,7 +182,8 @@ namespace CSharpHelper
 				{
 					if (Down != null)
 						_downLeft = Down.Left;
-					_downLeft = Left != null ? Left.Down : null;
+					else
+						_downLeft = (Left != null ? Left.Down : null);
 				}
 				return _downLeft;
 			}
@@ -169,10 +197,43 @@ namespace CSharpHelper
 				{
 					if (Down != null)
 						_downRight = Down.Right;
-					_downRight = Right != null ? Right.Down : null;
+					else
+						_downRight = (Right != null ? Right.Down : null);
 				}
 				return _downRight;
 			}
+		}
+
+		/// <summary>
+		/// liste toutes les cellules <typeparamref name="T"/> voisines en fonction du mode de sélection
+		/// </summary>
+		/// <param name="mode">mode de sélection des cellules voisines</param>
+		/// <returns>la liste des cellules voisines non nulles</returns>
+		public override IEnumerable<T> Arround(ArroundSelectMode mode)
+		{
+			if (mode != ArroundSelectMode.Diagonal)
+			{
+				if (Up != null)
+					yield return Up;
+				if (Down != null)
+					yield return Down;
+				if (Left != null)
+					yield return Left;
+				if (Right != null)
+					yield return Right;
+			}
+
+			if (mode == ArroundSelectMode.Cross)
+				yield break;
+
+			if (UpLeft != null)
+				yield return UpLeft;
+			if (UpRight != null)
+				yield return UpRight;
+			if (DownLeft != null)
+				yield return DownLeft;
+			if (DownRight != null)
+				yield return DownRight;
 		}
 	}
 
@@ -200,7 +261,7 @@ namespace CSharpHelper
 
 			int X { get; }
 
-			int Y { get; }
+			int Y { get;}
 		}
 
 		#endregion
@@ -223,9 +284,9 @@ namespace CSharpHelper
 
 			Parallel.For(0, _width, x => Parallel.For(0, _height, y => _cells[x, y] = createCell(x, y, this)));
 
-			//for (int i = 0; i < _width; ++i)
-			//	for (int j = 0; j < _height; ++j)
-			//		_cells[i, j] = createCell(i, j, this);
+			//for (int x = 0; x < _width; ++x)
+			//	for (int y = 0; y < _height; ++y)
+			//		_cells[x, y] = createCell(x, y, this);
 		}
 
 		public T this[int x, int y]
@@ -251,6 +312,111 @@ namespace CSharpHelper
 		public int Height
 		{
 			get { return _height; }
+		}
+
+		public IEnumerable<T> Range(T cell, int r)
+		{
+			List<T> cells = new List<T>();
+			while (r > 0)
+				foreach (T c in Circle(cell, r--).Where(c => !cells.Contains(c)))
+				{
+					yield return c;
+					cells.Add(c);
+				}
+		}
+
+		public IEnumerable<T> Circle(T cell, int r)
+		{
+			if (r < 0)
+				yield break;
+
+			int x = 0;
+			int y = r;
+			int d = r - 1;
+
+			List<T> list = new List<T>
+				{
+					cell
+				};
+
+			while (y >= x)
+			{
+				Point p2;
+				p2 = new Point(x + cell.X, y + cell.Y);
+				if (!list.Contains(this[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(y + cell.X, x + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(-x + cell.X, y + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(-y + cell.X, x + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(x + cell.X, -y + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(y + cell.X, -x + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(-x + cell.X, -y + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+				p2 = new Point(-y + cell.X, -x + cell.Y);
+				if (!list.Contains(Cells[p2.X, p2.Y]))
+				{
+					list.Add(Cells[p2.X, p2.Y]);
+					yield return Cells[p2.X, p2.Y];
+				}
+
+
+				if (d >= 2 * (x - 1))
+				{
+					d -= 2 * x;
+					x++;
+				}
+				else if (d <= 2 * (r - y))
+				{
+					d += 2 * y - 1;
+					y--;
+				}
+				else
+				{
+					d += 2 * (y - x - 1);
+					y--;
+					x++;
+				}
+			}
+			yield break;
 		}
 	}
 }

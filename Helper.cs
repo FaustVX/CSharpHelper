@@ -74,5 +74,24 @@ namespace CSharpHelper
 					//yield return item;
 				}
 		}
+
+		public static string Join<T>(this ICollection<T> array, string separator)
+		{
+			return array.Join(separator, item => item.ToString());
+		}
+
+		public static string Join<T>(this ICollection<T> array, string separator, Func<T, string> toString)
+		{
+			string result = "";
+
+			if (!array.Any())
+				return result;
+
+			result = toString(array.ElementAt(0));
+			for (int i = 1; i < array.Count; i++)
+				result += separator + toString(array.ElementAt(i));
+
+			return result;
+		}
 	}
 }
