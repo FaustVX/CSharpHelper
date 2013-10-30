@@ -61,12 +61,6 @@
     <Compile Include="WinForm\InputBox.Designer.cs">
       <DependentUpon>InputBox.cs</DependentUpon>
     </Compile>
-    <Compile Include="WinForm\LabelBox.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="WinForm\LabelBox.Designer.cs">
-      <DependentUpon>LabelBox.cs</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="WinForm\InputBox.resx">

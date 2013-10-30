@@ -27,15 +27,16 @@ namespace CSharpHelper
 
 	public enum Direction
 	{
-		Up,
-		Down,
-		Left,
-		Right,
-		UpLeft,
-		UpRight,
-		DownLeft,
-		DownRight,
-		Stay
+		Right = 0,
+		DownRight = 45,
+		Down = 90,
+		DownLeft = 135,
+		Left = 180,
+		UpLeft = 225,
+		Up = 270,
+		UpRight = 315,
+
+		Stay = -1
 	}
 
 	/// <summary>
@@ -498,6 +499,8 @@ namespace CSharpHelper
 		private readonly CreateCell _createCell;
 		private int _total;
 
+		public delegate bool CanWalk<in TpathCell>(TpathCell first, TpathCell second, out int value);
+
 		/// <summary>
 		/// Délégate de création de cellules
 		/// </summary>
@@ -528,13 +531,19 @@ namespace CSharpHelper
 					_cells[x, y] = _createCell(x, y, this);
 		}
 
-		public T this[int x, int y]
+		public virtual T this[int x, int y]
 		{
 			get
 			{
 				if (x < 0 || y < 0 || x >= _width || y >= _height)
 					return default(T);
 				return _cells[x, y];
+			}
+			set
+			{
+				if (x < 0 || y < 0 || x >= _width || y >= _height)
+					return;
+				_cells[x, y] = value;
 			}
 		}
 
@@ -558,31 +567,38 @@ namespace CSharpHelper
 			get { return _total; }
 		}
 
-		private static Node<TPathCell> AStar<TPathCell>(Node<TPathCell> parent, TPathCell end, Func<TPathCell, TPathCell, bool> canWalk, ArroundSelectMode mode, int minStep, Node<TPathCell>[,] map, int value)
+		private static Node<TPathCell> AStar<TPathCell>(Node<TPathCell> parent, TPathCell end, CanWalk<TPathCell> canWalk, ArroundSelectMode mode, int minStep, Node<TPathCell>[,] map, int value)
 			where TPathCell : T, IPathCell
 		{
 			foreach (var t in parent.Cell.Arround(mode).Cast<TPathCell>())
 			{
 				var node = map[t.X, t.Y];
+				int cost;
 
 				if (Equals(t, end))
 				{
-					if (node.Value > value)
-						node.Modify(parent, t, value + t.CellCost);
+					if (canWalk(t, parent.Cell, out cost))
+						if (node.Value > value)
+							node.Modify(parent, t, value); // + t.CellCost);
 				}
-
-				if (canWalk(t, parent.Cell) && node.Value > value)
+				if (canWalk(t, parent.Cell, out cost))
 				{
-					node.Modify(parent, t, value + t.CellCost);
-					var n = AStar(node, end, canWalk, mode, minStep, map, value + 1);
-					if (n != null)
-						return n;
+					if (node.Value > value + cost)
+					//	cost = cost;
+					//else
+					//	cost = cost;
+					{
+						node.Modify(parent, t, value + cost);
+						var n = AStar(node, end, canWalk, mode, minStep, map, value + 1 + cost);
+						if (n != null)
+							return n;
+					}
 				}
 			}
 			return null;
 		}
 
-		public IEnumerable<DirectionalCell> AStar<TPathCell>(TPathCell start, TPathCell end, Func<TPathCell, TPathCell, bool> canWalk, ArroundSelectMode mode)
+		public IEnumerable<DirectionalCell> AStar<TPathCell>(TPathCell start, TPathCell end, CanWalk<TPathCell> canWalk, ArroundSelectMode mode)
 			where TPathCell : T, IPathCell
 		{
 			if (Equals(start, end))
