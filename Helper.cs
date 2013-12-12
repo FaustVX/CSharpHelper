@@ -6,6 +6,18 @@ namespace CSharpHelper
 {
 	public static class Helper
 	{
+		public static TResult IfNotNull<TSource, TResult>(this TSource source, Func<TSource, TResult> action)
+		{
+			return Equals(source, default(TSource)) ? default(TResult) : action(source);
+		}
+
+		public static void IfNotNull<TSource>(this TSource source, Action<TSource> action)
+		{
+			if (Equals(source, default(TSource)))
+				return;
+			action(source);
+		}
+
 		public static bool IsInArray<T>(this T[] array, int value)
 		{
 			return value >= 0 && value < array.Length;

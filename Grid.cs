@@ -47,6 +47,7 @@ namespace CSharpHelper
 		where T : Cell<T>
 	{
 		private readonly int _x, _y;
+		private readonly Grid<T> _list;
 		private T _up, _left, _down, _right;
 
 		/// <summary>
@@ -60,6 +61,7 @@ namespace CSharpHelper
 		{
 			_x = x;
 			_y = y;
+			_list = list;
 
 			if(torus)
 			{
@@ -114,6 +116,21 @@ namespace CSharpHelper
 		public int Y
 		{
 			get { return _y; }
+		}
+
+		public Grid<T> Grid
+		{
+			get { return _list; }
+		}
+
+		public IEnumerable<T> Range(int radius)
+		{
+			return Grid.Range(this as T, radius);
+		}
+
+		public IEnumerable<T> Cricle(int radius)
+		{
+			return Grid.Circle(this as T, radius);
 		}
 
 		/// <summary>
@@ -384,16 +401,19 @@ namespace CSharpHelper
 		{
 			private readonly T _cell;
 			private readonly Direction _direction;
+			private readonly int _value;
 
-			public DirectionalCell(T cell, Direction direction)
+			public DirectionalCell(T cell, Direction direction, int value)
 			{
 				_cell = cell;
 				_direction = direction;
+				_value = value;
 			}
 
-			public DirectionalCell(T cell, T nextCell)
+			public DirectionalCell(T cell, T nextCell, int value)
 			{
 				_cell = cell;
+				_value = value;
 				if (Equals(cell, default(T)))
 				{
 					_direction = Direction.Stay;
@@ -440,6 +460,25 @@ namespace CSharpHelper
 			{
 				get { return _direction; }
 			}
+
+			public int Value
+			{
+				get { return _value; }
+			}
+
+			public float ToRad()
+			{
+				if (_direction == Direction.Stay)
+					return 0f;
+				return (float)((int)_direction * (Math.PI / 180));
+			}
+
+			public static float ToRad(Direction dir)
+			{
+				if (dir == Direction.Stay)
+					return 0f;
+				return (float)((int)dir * (Math.PI / 180));
+			}
 		}
 
 	public class NodeProxy<U>
@@ -477,7 +516,7 @@ namespace CSharpHelper
 			public U Cell { get; private set; }
 			public int Value { get; private set; }
 
-			public Node(int x, int y)
+			public Node() //int x, int y)
 			{
 				Parent = null;
 				Cell = default(U);
@@ -497,9 +536,10 @@ namespace CSharpHelper
 		private readonly T[,] _cells;
 		private readonly int _width, _height;
 		private readonly CreateCell _createCell;
-		private int _total;
+		private readonly int _total;
 
-		public delegate bool CanWalk<in TpathCell>(TpathCell first, TpathCell second, out int value);
+		public delegate bool CanWalk<in TPathCell>(TPathCell first, TPathCell second, out int value)
+			where TPathCell : T, IPathCell;
 
 		/// <summary>
 		/// Délégate de création de cellules
@@ -607,7 +647,7 @@ namespace CSharpHelper
 			Node<TPathCell>[,] map = new Node<TPathCell>[Width, Height];
 			for (int x = 0; x < Width; ++x)
 				for (int y = 0; y < Height; ++y)
-					map[x, y] = new Node<TPathCell>(x, y);
+					map[x, y] = new Node<TPathCell>();
 
 			Node<TPathCell> startNode = map[start.X, start.Y];
 			startNode.Modify(null, start, 0);
@@ -617,10 +657,10 @@ namespace CSharpHelper
 			IList<DirectionalCell> result = new List<DirectionalCell>();
 			var endNode = map[end.X, end.Y];
 			if (endNode.Parent != null)
-				result.Add(new DirectionalCell(endNode.Cell, Direction.Stay));
+				result.Add(new DirectionalCell(endNode.Cell, Direction.Stay, endNode.Value));
 			for (Node<TPathCell> n = endNode; n != null; n = n.Parent)
 				if (!Equals(n.Cell, default(TPathCell)) && n.Parent != null)
-					result.Add(new DirectionalCell(n.Parent.Cell, n.Cell));
+					result.Add(new DirectionalCell(n.Parent.Cell, n.Cell, n.Value));
 			if (result.Count == 0)
 				throw new Exception("Impossible de trouver un chemin");
 			return result.Reverse();
